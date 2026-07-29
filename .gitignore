@@ -1,0 +1,5 @@
+*.exe
+*.o
+.session.json
+test_story_db.json
+test_pitches_db.json
