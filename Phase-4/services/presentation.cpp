@@ -1,4 +1,4 @@
-// services/presentation.cpp
+﻿// services/presentation.cpp
 //
 // Implementation of the terminal presentation layer. See presentation.h
 // for the design rationale.
@@ -7,26 +7,24 @@
 
 #include <iostream>
 #include <sstream>
-#include <thread>
-#include <chrono>
 #include <cstdlib>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 namespace Presentation {
 
 namespace {
 
-    // Fixed column widths for the Pitch Registry grid. Kept as constants
-    // (rather than measured per-run) so every row -- and every re-render --
-    // lines up identically, which is what makes it read as a uniform grid.
-    constexpr int COL_NUM    = 4;   // "#"
-    constexpr int COL_AUTHOR = 14;  // "Author"
-    constexpr int COL_TARGET = 8;   // "Target"
-    constexpr int COL_STATUS = 10;  // "Status"
-    constexpr int COL_TEXT   = 34;  // "Pitch Text"
+    constexpr int COL_NUM    = 4;
+    constexpr int COL_AUTHOR = 14;
+    constexpr int COL_TARGET = 8;
+    constexpr int COL_STATUS = 10;
+    constexpr int COL_TEXT   = 34;
 
-    // Pads/truncates `s` to exactly `width` characters, left-aligned.
-    // Truncation appends "..." so the reader knows content was cut off
-    // rather than assuming the pitch text was actually that short.
     std::string fitColumn(const std::string& s, int width) {
         if (static_cast<int>(s.size()) > width) {
             if (width <= 3) return s.substr(0, width);
@@ -35,8 +33,6 @@ namespace {
         return s + std::string(width - static_cast<int>(s.size()), ' ');
     }
 
-    // Builds a horizontal rule matching the grid's column layout, e.g.
-    // "+----+----------------+--------+------------+------------------------------------+"
     std::string buildRule() {
         std::ostringstream rule;
         rule << '+' << std::string(COL_NUM + 2, '-')
@@ -48,7 +44,14 @@ namespace {
         return rule.str();
     }
 
-    // Builds one bordered row: "| ... | ... | ... | ... | ... |"
+    void sleepMs(unsigned int ms) {
+#ifdef _WIN32
+        Sleep(ms);
+#else
+        usleep(static_cast<useconds_t>(ms) * 1000);
+#endif
+    }
+
     std::string buildRow(const std::string& num, const std::string& author,
                           const std::string& target, const std::string& status,
                           const std::string& text) {
@@ -61,7 +64,7 @@ namespace {
         return row.str();
     }
 
-} // anonymous namespace
+}
 
 void clearScreen() {
 #ifdef _WIN32
@@ -70,8 +73,6 @@ void clearScreen() {
     std::system("clear");
 #endif
 }
-
-// --- 1. Story Canvas Interface ------------------------------------------
 
 void renderStoryCanvas(const std::vector<Paragraph>& story,
                         const std::string& title,
@@ -87,9 +88,6 @@ void renderStoryCanvas(const std::vector<Paragraph>& story,
         return;
     }
 
-    // Join every paragraph's text into one continuous stream of words.
-    // Deliberately dropping id/author/order_num here -- the canvas is
-    // meant to read like a finished story, not a database dump.
     std::vector<std::string> words;
     for (const auto& paragraph : story) {
         std::istringstream lineStream(paragraph.text);
@@ -104,8 +102,6 @@ void renderStoryCanvas(const std::vector<Paragraph>& story,
     for (size_t i = 0; i < words.size(); ++i) {
         const std::string& word = words[i];
 
-        // Wrap to a new line once the current line would exceed wrapWidth,
-        // so the canvas stays readable regardless of story length.
         if (column > 0 && column + 1 + static_cast<int>(word.size()) > wrapWidth) {
             std::cout << "\n";
             column = 0;
@@ -118,15 +114,13 @@ void renderStoryCanvas(const std::vector<Paragraph>& story,
         column += static_cast<int>(word.size());
 
         if (wordDelayMs > 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(wordDelayMs));
+            sleepMs(wordDelayMs);
         }
     }
 
     std::cout << "\n\n" << std::string(60, '-') << "\n";
     std::cout << story.size() << " paragraph(s) in the chain.\n";
 }
-
-// --- 2. Pitch Registry Workspace ------------------------------------------
 
 void renderPitchRegistry(const std::vector<Pitch>& pitches,
                           const std::string& title) {
@@ -165,4 +159,4 @@ void renderPitchRegistry(const std::vector<Pitch>& pitches,
     std::cout << pitches.size() << " candidate pitch(es) listed above.\n";
 }
 
-} // namespace Presentation
+}
