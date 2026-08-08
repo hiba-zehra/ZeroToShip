@@ -1,0 +1,20 @@
+# Build artifacts
+manual_test
+phase4_demo
+storyforge
+*.o
+*.obj
+*.exe
+
+# Runtime data (created by running the app -- shouldn't be committed)
+story_db.json
+pitches_db.json
+.session.json
+test_story_db.json
+test_pitches_db.json
+
+# Editor / OS cruft
+.vscode/
+.idea/
+*.swp
+.DS_Store
