@@ -7,9 +7,21 @@
 
 #include <iostream>
 #include <sstream>
+#include <cstdlib>
+
+// Some older/legacy MinGW toolchains (e.g. the classic mingw.org GCC 6.x
+// distribution, as opposed to mingw-w64) never fully implemented
+// std::thread / std::this_thread, since it depends on proper Win32
+// threading support they didn't ship. Rather than require everyone to
+// install a newer toolchain just to get a typewriter delay, we fall back
+// to the native Win32 Sleep() there and keep the portable
+// std::this_thread::sleep_for() path everywhere else.
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <thread>
 #include <chrono>
-#include <cstdlib>
+#endif
 
 namespace Presentation {
 
@@ -118,7 +130,11 @@ void renderStoryCanvas(const std::vector<Paragraph>& story,
         column += static_cast<int>(word.size());
 
         if (wordDelayMs > 0) {
+#ifdef _WIN32
+            Sleep(wordDelayMs); // Sleep() takes milliseconds directly on Windows
+#else
             std::this_thread::sleep_for(std::chrono::milliseconds(wordDelayMs));
+#endif
         }
     }
 
